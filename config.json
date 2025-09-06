@@ -1,0 +1,20 @@
+{
+  "buttons": {
+    "primary": {
+      "text": "Get Started",
+      "url": "https://youtube.com",
+      "description": "Main call-to-action button"
+    },
+    "secondary": {
+      "text": "Learn More",
+      "url": "https://google.com",
+      "description": "Secondary information button"
+    },
+    "accent": {
+      "text": "Join Now",
+      "url": "https://google.com",
+      "description": "Accent action button"
+    }
+  },
+  "lastUpdated": "2025-09-06T08:43:26Z"
+}

@@ -2,17 +2,17 @@
   "buttons": {
     "primary": {
       "text": "Get Started",
-      "url": "https://youtube.com",
+      "url": "#",
       "description": "Main call-to-action button"
     },
     "secondary": {
       "text": "Learn More",
-      "url": "https://google.com",
+      "url": "#",
       "description": "Secondary information button"
     },
     "accent": {
       "text": "Join Now",
-      "url": "https://google.com",
+      "url": "https://myeasywebincome.com",
       "description": "Accent action button"
     }
   },

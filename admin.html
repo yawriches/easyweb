@@ -205,15 +205,15 @@
             accentUrl: row.btn3 || ''
           }));
           
+          console.log('Loaded button data from SheetDB:', {
+            primaryUrl: row.btn1,
+            secondaryUrl: row.btn2,
+            accentUrl: row.btn3
+          });
+          
         } catch (apiError) {
           console.warn('Error fetching from SheetDB, using localStorage data', apiError);
         }
-        
-        console.log('Loaded button data:', {
-          primaryUrl: row.btn1,
-          secondaryUrl: row.btn2,
-          accentUrl: row.btn3
-        });
       } catch (error) {
         console.error('Error loading button data:', error);
         showStatus('Failed to load button data', 'error');

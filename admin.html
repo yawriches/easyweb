@@ -104,24 +104,49 @@
     
     async function loadButtonData() {
       try {
-        // Try to load from SheetDB with the sheet parameter
-        const response = await fetch('https://sheetdb.io/api/v1/ixretu8my1aw8?sheet=Sheet1');
-        if (!response.ok) throw new Error('Failed to fetch data');
-        
-        const rows = await response.json();
-        if (!rows || !rows.length) {
-          console.log('No data found in SheetDB');
-          return;
+        // First try to load from localStorage as fallback
+        const localData = localStorage.getItem('adminButtonData');
+        if (localData) {
+          const data = JSON.parse(localData);
+          console.log('Loaded from localStorage:', data);
+          if (data.primaryUrl) document.getElementById('primaryUrl').value = data.primaryUrl;
+          if (data.secondaryUrl) document.getElementById('secondaryUrl').value = data.secondaryUrl;
+          if (data.accentUrl) document.getElementById('accentUrl').value = data.accentUrl;
         }
         
-        // Update form with the first row of data
-        const row = rows[0];
-        console.log('Raw data from SheetDB:', row);
-        
-        // Set the values from the row data
-        if (row.btn1 !== undefined) document.getElementById('primaryUrl').value = row.btn1;
-        if (row.btn2 !== undefined) document.getElementById('secondaryUrl').value = row.btn2;
-        if (row.btn3 !== undefined) document.getElementById('accentUrl').value = row.btn3;
+        // Then try to load from SheetDB
+        try {
+          const response = await fetch('https://sheetdb.io/api/v1/ixretu8my1aw8?sheet=Sheet1');
+          if (!response.ok) {
+            console.warn('SheetDB API returned non-OK status:', response.status);
+            return;
+          }
+          
+          const rows = await response.json();
+          if (!rows || !rows.length) {
+            console.log('No data found in SheetDB');
+            return;
+          }
+          
+          // Update form with the first row of data
+          const row = rows[0];
+          console.log('Raw data from SheetDB:', row);
+          
+          // Set the values from the row data
+          if (row.btn1 !== undefined) document.getElementById('primaryUrl').value = row.btn1;
+          if (row.btn2 !== undefined) document.getElementById('secondaryUrl').value = row.btn2;
+          if (row.btn3 !== undefined) document.getElementById('accentUrl').value = row.btn3;
+          
+          // Save to localStorage for offline use
+          localStorage.setItem('adminButtonData', JSON.stringify({
+            primaryUrl: row.btn1 || '',
+            secondaryUrl: row.btn2 || '',
+            accentUrl: row.btn3 || ''
+          }));
+          
+        } catch (apiError) {
+          console.warn('Error fetching from SheetDB, using localStorage data', apiError);
+        }
         
         console.log('Loaded button data:', {
           primaryUrl: row.btn1,
@@ -149,65 +174,66 @@
         const secondaryUrl = document.getElementById('secondaryUrl').value.trim();
         const accentUrl = document.getElementById('accentUrl').value.trim();
         
-        // First, try to get the current data to check the structure
-        const getResponse = await fetch('https://sheetdb.io/api/v1/ixretu8my1aw8?sheet=Sheet1');
-        if (getResponse.ok) {
-          const existingData = await getResponse.json();
-          console.log('Existing data:', existingData);
-          
-          // If we have existing data, delete it first
-          if (existingData && existingData.length > 0) {
-            const deleteResponse = await fetch('https://sheetdb.io/api/v1/ixretu8my1aw8/all?sheet=Sheet1', {
-              method: 'DELETE',
-              headers: {
-                'Content-Type': 'application/json',
-                'Accept': 'application/json'
-              }
-            });
-            
-            if (!deleteResponse.ok) {
-              const error = await deleteResponse.text();
-              console.error('Delete error:', error);
-              throw new Error('Failed to clear existing data: ' + error);
-            }
-            console.log('Successfully cleared existing data');
-          }
-        }
-        
-        // Prepare the new data in the same format as button1
-        const payload = {
-          data: [{
-            btn1: primaryUrl || '',
-            btn2: secondaryUrl || '',
-            btn3: accentUrl || ''
-          }]
+        // Save to localStorage first for immediate feedback
+        const localData = {
+          primaryUrl,
+          secondaryUrl,
+          accentUrl
         };
+        localStorage.setItem('adminButtonData', JSON.stringify(localData));
         
-        console.log('Saving new data:', payload);
-        
-        // Send new data to SheetDB using POST
-        const response = await fetch('https://sheetdb.io/api/v1/ixretu8my1aw8?sheet=Sheet1', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Accept': 'application/json'
-          },
-          body: JSON.stringify(payload)
-        });
-        
-        const responseData = await response.json();
-        console.log('Save response:', responseData);
-        
-        if (!response.ok) {
-          throw new Error(`Failed to save: ${JSON.stringify(responseData)}`);
+        // Try to save to SheetDB
+        try {
+          // First, clear existing data
+          const deleteResponse = await fetch('https://sheetdb.io/api/v1/ixretu8my1aw8/all?sheet=Sheet1', {
+            method: 'DELETE',
+            headers: {
+              'Content-Type': 'application/json',
+              'Accept': 'application/json'
+            }
+          });
+          
+          if (!deleteResponse.ok) {
+            console.warn('Failed to clear existing data, continuing with save...');
+          }
+          
+          // Prepare the new data
+          const payload = {
+            data: [{
+              btn1: primaryUrl || '',
+              btn2: secondaryUrl || '',
+              btn3: accentUrl || ''
+            }]
+          };
+          
+          console.log('Saving to SheetDB:', payload);
+          
+          // Send new data to SheetDB using POST
+          const response = await fetch('https://sheetdb.io/api/v1/ixretu8my1aw8?sheet=Sheet1', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Accept': 'application/json'
+            },
+            body: JSON.stringify(payload)
+          });
+          
+          if (!response.ok) {
+            throw new Error(`SheetDB API error: ${response.status}`);
+          }
+          
+          const responseData = await response.json();
+          console.log('SheetDB save successful:', responseData);
+          showStatus('Settings saved successfully!', 'success');
+          
+        } catch (apiError) {
+          console.warn('Error saving to SheetDB, using localStorage only:', apiError);
+          showStatus('Settings saved locally (offline mode)', 'warning');
         }
-        
-        // Show success message
-        showStatus('Changes saved successfully!', 'success');
         
       } catch (error) {
         console.error('Error saving button data:', error);
-        showStatus(`Error: ${error.message}`, 'error');
+        showStatus('Error saving settings: ' + error.message, 'error');
       } finally {
         // Re-enable save button
         saveBtn.disabled = false;
